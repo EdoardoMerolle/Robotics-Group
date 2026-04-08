@@ -29,10 +29,12 @@ motor GantryMotor = motor(PORT1, ratio18_1, false);
 controller Controller1 = controller(primary);
 
 const int COLUMN_COUNT = 7;
-const int HOME_COLUMN = 4;
+const int HOME_COLUMN = 0;
 const int MOTOR_SPEED_PCT = 10;
 const int CALIBRATION_JOG_SPEED_PCT = 5;
+const int COLUMN_DWELL_MS = 5000;
 const double JOG_DEADBAND_PCT = 5.0;
+double homePositionDeg = -90.0;
 double columnPositionsDeg[COLUMN_COUNT] = {
   0.0,   // Column 1
   90.0,  // Column 2
@@ -89,11 +91,11 @@ void printCalibrationStatus(int selectedColumn) {
 }
 
 void moveToStoredHome() {
-  GantryMotor.spinToPosition(columnPositionsDeg[HOME_COLUMN - 1], degrees, MOTOR_SPEED_PCT, velocityUnits::pct, true);
+  GantryMotor.spinToPosition(homePositionDeg, degrees, MOTOR_SPEED_PCT, velocityUnits::pct, true);
 }
 
 void runCalibrationMode() {
-  int selectedColumn = HOME_COLUMN;
+  int selectedColumn = 1;
   bool wasUpPressed = false;
   bool wasDownPressed = false;
   bool wasAPressed = false;
@@ -182,17 +184,14 @@ void moveToColumn(int columnNumber) {
 
   char completeLine[32];
   snprintf(completeLine, sizeof(completeLine), "At column %d", columnNumber);
-  drawStatus(completeLine, "Ready for next command");
+  drawStatus(completeLine, "Wait 5 sec");
   printf("OK %d\n", columnNumber);
+  wait(COLUMN_DWELL_MS, msec);
 
-  if (columnNumber != HOME_COLUMN) {
-    char returnLine[32];
-    snprintf(returnLine, sizeof(returnLine), "Returning to %d", HOME_COLUMN);
-    drawStatus(returnLine, "Motor running...");
-    moveToStoredHome();
-  }
+  drawStatus("Return home", "Motor running");
+  moveToStoredHome();
 
-  drawStatus("Home: col 4", "Serial wait");
+  drawStatus("Home: col 0", "Serial wait");
 }
 
 int serialReaderTask() {
@@ -218,7 +217,7 @@ int main() {
   GantryMotor.resetPosition();
 
   moveToStoredHome();
-  drawStatus("Home: col 4", "Send 1-7");
+  drawStatus("Home: col 0", "Send 1-7");
   printf("READY\n");
   printCalibrationTable();
   thread serialThread = thread(serialReaderTask);
@@ -229,7 +228,7 @@ int main() {
         wait(20, msec);
       }
       runCalibrationMode();
-      drawStatus("Home: col 4", "Send 1-7");
+      drawStatus("Home: col 0", "Send 1-7");
     }
 
     if (serialCommandPending) {
