@@ -5,7 +5,7 @@ set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
 set "SERIAL_PORT=%~1"
-if "%SERIAL_PORT%"=="" set "SERIAL_PORT=COM9"
+if "%SERIAL_PORT%"=="" set "SERIAL_PORT=COM4"
 
 set "SERIAL_BAUD=%~2"
 if "%SERIAL_BAUD%"=="" set "SERIAL_BAUD=115200"
