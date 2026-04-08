@@ -76,6 +76,7 @@ void drawCalibrationScreen(int selectedColumn) {
 
 void printCalibrationTable() {
   printf("CAL ");
+  printf("%d=%.1f ", HOME_COLUMN, homePositionDeg);
   for (int index = 0; index < COLUMN_COUNT; ++index) {
     printf("%d=%.1f ", index + 1, columnPositionsDeg[index]);
   }
@@ -95,7 +96,7 @@ void moveToStoredHome() {
 }
 
 void runCalibrationMode() {
-  int selectedColumn = 1;
+  int selectedColumn = HOME_COLUMN;
   bool wasUpPressed = false;
   bool wasDownPressed = false;
   bool wasAPressed = false;
@@ -130,14 +131,19 @@ void runCalibrationMode() {
       printCalibrationStatus(selectedColumn);
     }
 
-    if (downPressed && !wasDownPressed && selectedColumn > 1) {
+    if (downPressed && !wasDownPressed && selectedColumn > HOME_COLUMN) {
       selectedColumn -= 1;
       printCalibrationStatus(selectedColumn);
     }
 
     if (aPressed && !wasAPressed) {
-      columnPositionsDeg[selectedColumn - 1] = GantryMotor.position(degrees);
-      printf("CAL_SAVED column=%d position=%.1f\n", selectedColumn, columnPositionsDeg[selectedColumn - 1]);
+      double currentPosition = GantryMotor.position(degrees);
+      if (selectedColumn == HOME_COLUMN) {
+        homePositionDeg = currentPosition;
+      } else {
+        columnPositionsDeg[selectedColumn - 1] = currentPosition;
+      }
+      printf("CAL_SAVED column=%d position=%.1f\n", selectedColumn, currentPosition);
       printCalibrationTable();
     }
 
