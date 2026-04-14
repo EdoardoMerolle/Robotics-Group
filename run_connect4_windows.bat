@@ -4,6 +4,7 @@ setlocal
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
+rem Default to webcam mode and a standard VEX serial setup.
 set "MODE=%~1"
 if "%MODE%"=="" set "MODE=webcam"
 
@@ -14,6 +15,7 @@ if "%SERIAL_BAUD%"=="" set "SERIAL_BAUD=115200"
 if exist "%SCRIPT_DIR%.venv\Scripts\python.exe" (
     set "PYTHON_CMD=%SCRIPT_DIR%.venv\Scripts\python.exe"
 ) else (
+    rem Fall back to the system Python if the venv is missing.
     where py >nul 2>nul
     if not errorlevel 1 (
         set "PYTHON_CMD=py -3"
@@ -22,6 +24,7 @@ if exist "%SCRIPT_DIR%.venv\Scripts\python.exe" (
     )
 )
 
+rem These environment variables enable optional serial output.
 if not "%SERIAL_PORT%"=="" (
     set "CONNECT4_ENABLE_SERIAL=1"
     set "CONNECT4_SERIAL_PORT=%SERIAL_PORT%"

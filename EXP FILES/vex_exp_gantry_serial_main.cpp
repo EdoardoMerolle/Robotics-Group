@@ -96,6 +96,7 @@ void moveToStoredHome() {
 }
 
 void runCalibrationMode() {
+  // Manual calibration mode lets you jog the gantry and save positions.
   int selectedColumn = HOME_COLUMN;
   bool wasUpPressed = false;
   bool wasDownPressed = false;
@@ -175,6 +176,7 @@ void runCalibrationMode() {
 }
 
 void moveToColumn(int columnNumber) {
+  // Move to the requested column, pause, then return home.
   if (columnNumber < 1 || columnNumber > COLUMN_COUNT) {
     drawStatus("Invalid column", "Expected 1 to 7");
     printf("ERR Invalid column %d\n", columnNumber);
@@ -201,6 +203,7 @@ void moveToColumn(int columnNumber) {
 }
 
 int serialReaderTask() {
+  // Read newline-terminated column commands from stdin.
   while (true) {
     char inputBuffer[16];
     if (fgets(inputBuffer, sizeof(inputBuffer), stdin) != NULL) {
@@ -218,6 +221,7 @@ int serialReaderTask() {
 }
 
 int main() {
+  // Home the gantry, start the reader thread, then wait for commands.
   GantryMotor.setStopping(hold);
   GantryMotor.setVelocity(MOTOR_SPEED_PCT, percent);
   GantryMotor.resetPosition();

@@ -4,6 +4,7 @@ from gantry_serial import build_gantry_link_from_env
 
 
 def main():
+    # Small manual test for the serial link.
     link = build_gantry_link_from_env()
     if link is None:
         print("Set CONNECT4_ENABLE_SERIAL=1 and CONNECT4_SERIAL_PORT before running this test.")

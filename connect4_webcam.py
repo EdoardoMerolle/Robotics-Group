@@ -2,6 +2,7 @@ from collections import Counter, deque
 import os
 import sys
 
+# OpenCV is required for webcam capture and display.
 try:
     import cv2
 except ModuleNotFoundError as error:
@@ -17,6 +18,7 @@ except ModuleNotFoundError as error:
         raise SystemExit(1)
     raise
 
+# NumPy handles the perspective warp and pixel scoring.
 try:
     import numpy as np
 except ModuleNotFoundError as error:
@@ -36,6 +38,7 @@ import main
 from gantry_serial import build_gantry_link_from_env
 
 
+# Board geometry and colour thresholds.
 ROWS = main.rows
 COLS = main.cols
 HUMAN_SYMBOL = main.symbol1
@@ -53,6 +56,7 @@ DEFAULT_HUMAN_MODEL = {"hue": 0, "sat_low": 80, "val_low": 50, "hue_width": CALI
 DEFAULT_AI_MODEL = {"hue": 28, "sat_low": 80, "val_low": 50, "hue_width": CALIBRATION_HUE_WIDTH}
 
 
+# Webcam mode needs a desktop session, not a headless terminal.
 def ensure_gui_available():
     if sys.platform.startswith("linux"):
         has_x11 = bool(os.environ.get("DISPLAY"))
@@ -98,6 +102,7 @@ def order_points(points):
 
 
 def board_outline_from_hole_centers(points):
+    # Convert corner hole clicks into the board outline.
     tl, tr, br, bl = order_points(points)
     top_step = (tr - tl) / max(COLS - 1, 1)
     bottom_step = (br - bl) / max(COLS - 1, 1)
@@ -117,6 +122,7 @@ def board_outline_from_hole_centers(points):
 
 
 def warp_board(frame, hole_centers):
+    # Warp the camera view into a top-down board view.
     src = board_outline_from_hole_centers(hole_centers)
     dst = np.array(
         [
@@ -137,6 +143,7 @@ def circular_hue_distance(hue_values, target_hue):
 
 
 def sample_colour_model(frame, sample_point, label):
+    # Learn a colour model from a clicked counter.
     sample = extract_sample_patch(frame, sample_point)
     hsv = cv2.cvtColor(sample, cv2.COLOR_BGR2HSV)
     pixels = hsv.reshape(-1, 3)
@@ -174,6 +181,7 @@ def model_score(hsv, circle_mask, colour_model):
 
 
 def classify_cell(cell_bgr, human_model, ai_model):
+    # Compare the detected pixels against both colour models.
     hsv = cv2.cvtColor(cell_bgr, cv2.COLOR_BGR2HSV)
     h, w = hsv.shape[:2]
     radius = int(min(h, w) * 0.22)
@@ -195,6 +203,7 @@ def classify_cell(cell_bgr, human_model, ai_model):
     return symbol, int(human_score), int(ai_score)
 
 def detect_board_state_with_debug(warped_frame, human_model, ai_model):
+    # Classify each cell and keep per-cell debug scores.
     board = empty_board()
     debug = [[None] * COLS for _ in range(ROWS)]
     cell_w = BOARD_WIDTH / COLS
@@ -219,6 +228,7 @@ def detect_board_state_with_debug(warped_frame, human_model, ai_model):
 
 
 def draw_grid_overlay(frame):
+    # Draw the logical 7x6 grid over the warped board image.
     overlay = frame.copy()
     cell_w = BOARD_WIDTH / COLS
     cell_h = BOARD_HEIGHT / ROWS
@@ -234,6 +244,7 @@ def draw_grid_overlay(frame):
 
 
 def has_gravity(board):
+    # Valid boards cannot have floating pieces.
     for col in range(COLS):
         seen_empty = False
         for row in range(ROWS - 1, -1, -1):
@@ -245,6 +256,7 @@ def has_gravity(board):
 
 
 def gravity_failure(board):
+    # Return the first column that violates gravity.
     for col in range(COLS):
         seen_empty = False
         for row in range(ROWS - 1, -1, -1):
@@ -280,6 +292,7 @@ def board_validation_message(board):
 
 
 def apply_move(board, col, symbol):
+    # Simulate a move on a copy of the current board.
     updated = clone_board(board)
     row = main.GetAvailableRow(updated, col)
     if row is None:
@@ -289,6 +302,7 @@ def apply_move(board, col, symbol):
 
 
 def diff_cells(before, after):
+    # Find the cells that changed between two board states.
     diffs = []
     for row in range(ROWS):
         for col in range(COLS):
@@ -298,6 +312,7 @@ def diff_cells(before, after):
 
 
 def is_single_human_move(previous_board, detected_board):
+    # Accept only one legal human placement at a time.
     diffs = diff_cells(previous_board, detected_board)
     if len(diffs) != 1:
         return False
@@ -309,6 +324,7 @@ def is_single_human_move(previous_board, detected_board):
 
 
 def select_stable_board(history):
+    # Require the same detected board several times in a row.
     if len(history) < STABLE_DETECTIONS:
         return None
     counts = Counter(history)
@@ -319,6 +335,7 @@ def select_stable_board(history):
 
 
 def draw_status_text(frame, lines, origin=(10, 25), color=(0, 255, 0)):
+    # Render status lines on the video frame.
     x, y = origin
     for index, line in enumerate(lines):
         cv2.putText(
@@ -334,6 +351,7 @@ def draw_status_text(frame, lines, origin=(10, 25), color=(0, 255, 0)):
 
 
 def sample_patch_bounds(frame, sample_point):
+    # Clamp the sample area so it stays inside the image.
     h, w = frame.shape[:2]
     patch = min(CALIBRATION_PATCH, h - 2, w - 2)
     half = patch // 2
@@ -348,6 +366,7 @@ def extract_sample_patch(frame, sample_point):
 
 
 def draw_sample_marker(frame, sample_point):
+    # Show the sampled patch on the warped board view.
     x0, y0, x1, y1 = sample_patch_bounds(frame, sample_point)
     cx, cy = sample_point
     cv2.rectangle(frame, (x0, y0), (x1, y1), (0, 255, 255), 2)
@@ -355,6 +374,7 @@ def draw_sample_marker(frame, sample_point):
 
 
 def parse_camera_candidates():
+    # Allow optional camera index overrides from the command line.
     if len(sys.argv) <= 1:
         return CAMERA_CANDIDATES
 
@@ -368,6 +388,7 @@ def parse_camera_candidates():
 
 
 def open_webcam():
+    # Try a small set of camera indices until one opens cleanly.
     attempted = []
     for camera_index in parse_camera_candidates():
         capture = cv2.VideoCapture(camera_index)
@@ -386,6 +407,7 @@ def open_webcam():
 
 
 def draw_detection_debug(frame, debug_cells):
+    # Overlay the per-cell classification scores for troubleshooting.
     cell_w = BOARD_WIDTH / COLS
     cell_h = BOARD_HEIGHT / ROWS
 
@@ -436,6 +458,7 @@ def main_loop():
     capture, active_camera_index = open_webcam()
     gantry_link = build_gantry_link_from_env()
 
+    # Track calibration, detection stability, and whose turn it is.
     clicked_corners = []
     detection_history = deque(maxlen=STABLE_DETECTIONS)
     logical_board = empty_board()
@@ -492,6 +515,7 @@ def main_loop():
         if len(clicked_corners) == 4:
             warped = warp_board(frame, clicked_corners)
             if human_colour_ready and ai_colour_ready:
+                # Only trust the board after both colours are calibrated.
                 detected_board, latest_debug_cells = detect_board_state_with_debug(warped, human_model, ai_model)
                 latest_detected_board = clone_board(detected_board)
                 detection_history.append(board_to_key(detected_board))
@@ -533,6 +557,7 @@ def main_loop():
                         winner = "Draw."
                         message = winner
                     else:
+                        # Ask the AI for the next move and mirror it on the board.
                         ai_choice = main.BestMove(clone_board(logical_board), AI_SYMBOL, HUMAN_SYMBOL, maxDepth=5)
                         expected_ai_board = apply_move(logical_board, ai_choice, AI_SYMBOL)
                         if expected_ai_board is None:
@@ -616,6 +641,7 @@ def main_loop():
             except ValueError as error:
                 message = str(error)
         if key == ord("r"):
+            # Reset the full calibration and game state.
             clicked_corners = []
             detection_history.clear()
             logical_board = empty_board()

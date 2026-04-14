@@ -11,6 +11,7 @@ except ModuleNotFoundError:
 
 
 def parse_args():
+    # CLI options for either manual testing or a scripted sweep.
     parser = argparse.ArgumentParser(
         description="Send test column commands to the VEX EXP gantry controller."
     )
@@ -47,6 +48,7 @@ def parse_args():
 
 
 def discover_candidate_ports():
+    # Check common device names if the user does not pass a port.
     candidates = []
 
     if list_ports is not None:
@@ -65,6 +67,7 @@ def discover_candidate_ports():
 
 
 def connect_with_auto_detect(port, baud_rate):
+    # Try the requested port first, then fall back to discovered ports.
     ports_to_try = [port] if port else discover_candidate_ports()
     if not ports_to_try:
         return None, "No serial ports found. Connect the EXP brain and try again."
@@ -82,6 +85,7 @@ def connect_with_auto_detect(port, baud_rate):
 
 
 def send_manual(link):
+    # Interactive mode for trying single commands.
     print("Manual mode.")
     print("Enter a column from 1 to 7, or q to quit.")
 
@@ -107,6 +111,7 @@ def send_manual(link):
 
 
 def send_sweep(link, columns, delay_seconds):
+    # Automated sequence for repetitive testing.
     print(f"Sweep mode. Sending columns: {columns}")
 
     for column in columns:

@@ -1,9 +1,9 @@
 import os
-import random 
+import random
 import time
 import csv
 
-# Global Variables
+# Game state shared by the terminal and webcam modes.
 gameOver = False
 board = []
 symbol1 = "●"
@@ -11,12 +11,13 @@ symbol2 = "○"
 rows = 6
 cols = 7
 
-# Performance Metrics
+# Minimax metrics used by the evaluation helper.
 nodesExpanded = 0
 maxDepthReached = 0
 pruneCount = 0
 branchCounts = []
 
+# Console helpers
 def ClearConsole():
     if os.name == "nt":
         os.system("cls")
@@ -40,10 +41,11 @@ def PrintBoard():
 
     print(" ", end="")
     for i in range(len(board[0])):
-        # To show numbers under columns
+        # Keep the column numbers aligned under the board.
         print(f" {i+1}  ", end="")  
     print()
 
+# Move helpers
 def PlaceCounter(pos, symbol):
     global board
 
@@ -112,6 +114,7 @@ def ApplyMove(board, col, symbol):
     tempBoard[row][col] = symbol
     return tempBoard
 
+# Prefer the centre first, then work outward.
 def OrderedCols(board):
     center = cols // 2
     return sorted(GetAvailableCols(board), key=lambda col: (abs(col - center), col))
@@ -125,21 +128,21 @@ def GetWinningMoves(board, symbol):
     return winningMoves
 
 def IsWinningBoard(symbol, board):
-    # Horizontal
+    # Horizontal check.
     for r in range(rows):
         count = 0
         for c in range(cols):
             count = count + 1 if board[r][c] == symbol else 0
             if count == 4:
                 return True
-    # Vertical
+    # Vertical check.
     for c in range(cols):
         count = 0
         for r in range(rows):
             count = count + 1 if board[r][c] == symbol else 0
             if count == 4:
                 return True
-    # Diagonal \
+    # Diagonal \ check.
     for r in range(rows - 3):
         for c in range(cols - 3):
             if (board[r][c] == symbol and
@@ -147,7 +150,7 @@ def IsWinningBoard(symbol, board):
                 board[r + 2][c + 2] == symbol and
                 board[r + 3][c + 3] == symbol):
                 return True
-    # Diagonal /
+    # Diagonal / check.
     for r in range(3, rows):
         for c in range(cols - 3):
             if (board[r][c] == symbol and
@@ -158,7 +161,7 @@ def IsWinningBoard(symbol, board):
     return False
 
 def GetWinPattern(symbol, board):
-    # Horizontal
+    # Match the win shape for the metrics CSV.
     for r in range(rows):
         count = 0
         for c in range(cols):
@@ -233,7 +236,7 @@ def RuleBasedAgent(board):
     return random.choice(OrderedCols(board))
 
 def EvaluateWindow(window, agentSymbol, playerSymbol):
-        # Goes through the captured 'window' seeing how many of each symbol it contains
+        # Score a four-cell window for the heuristic.
 
         scoreWeights = {
             4: 100000, # four in a row (should be caught by terminal check first)
@@ -270,25 +273,25 @@ def HeuristicScore(board, agentSymbol, playerSymbol):
     score += centerCount * 18
     score -= enemyCenterCount * 18
 
-    # Horizontal runs
+    # Horizontal runs.
     for r in range(rows):
         for c in range(cols - 3):
             window = [board[r][c + i] for i in range(4)]
             score += EvaluateWindow(window, agentSymbol, playerSymbol)
 
-    # Vertical runs
+    # Vertical runs.
     for c in range(cols):
         for r in range(rows - 3):
             window = [board[r + i][c] for i in range(4)]
             score += EvaluateWindow(window, agentSymbol, playerSymbol)
 
-    # Diagonal \ runs
+    # Diagonal \ runs.
     for r in range(rows - 3):
         for c in range(cols - 3):
             window = [board[r + i][c + i] for i in range(4)]
             score += EvaluateWindow(window, agentSymbol, playerSymbol)
 
-    # Diagonal / runs
+    # Diagonal / runs.
     for r in range(3, rows):
         for c in range(cols - 3):
             window = [board[r - i][c + i] for i in range(4)]
@@ -302,7 +305,7 @@ def HeuristicScore(board, agentSymbol, playerSymbol):
 def MiniMax(board, depth, alpha, beta, isMaximising, agentSymbol, playerSymbol, maxDepth=3):
     global nodesExpanded, maxDepthReached, pruneCount, branchCounts
 
-    # Metric Variables
+    # Track search effort for evaluation output.
     nodesExpanded += 1
     maxDepthReached = max(maxDepthReached, depth)
 
@@ -316,7 +319,7 @@ def MiniMax(board, depth, alpha, beta, isMaximising, agentSymbol, playerSymbol, 
     elif IsFull(board):
         return 0
     if depth >= maxDepth:
-        # Don't go any further 
+        # Stop at the depth limit and fall back to the heuristic.
         return HeuristicScore(board, agentSymbol, playerSymbol)
     
     if isMaximising:
@@ -325,11 +328,11 @@ def MiniMax(board, depth, alpha, beta, isMaximising, agentSymbol, playerSymbol, 
         for col in OrderedCols(board):
             tempBoard = ApplyMove(board, col, agentSymbol)
             evalScore = MiniMax(tempBoard, depth + 1, alpha, beta, False, agentSymbol, playerSymbol, maxDepth)
-            # ^ recursive call to minimax whilst changing to minimizing - simulating opponent's move
+            # Opponent response after a candidate move.
             maxEval = max(maxEval, evalScore)
             alpha = max(alpha, evalScore)
             if beta <= alpha:
-                # prunes branch as minimising player is likely avoid this path
+                # Cut branches that cannot improve the result.
                 pruneCount +=1
                 break
 
@@ -350,7 +353,7 @@ def MiniMax(board, depth, alpha, beta, isMaximising, agentSymbol, playerSymbol, 
         return minEval
     
 def BestMove(board, agentSymbol, playerSymbol, maxDepth=5):
-    # Prioritise direct wins and emergency blocks before deeper search.
+    # Check for immediate wins or blocks before searching deeper.
     winningMoves = GetWinningMoves(board, agentSymbol)
     if winningMoves:
         return winningMoves[0]
@@ -374,12 +377,12 @@ def BestMove(board, agentSymbol, playerSymbol, maxDepth=5):
 
     candidateMoves = safeMoves if safeMoves else OrderedCols(board)
 
-    # For every column, simulate placement and score it with minimax.
+    # Score each safe move with minimax.
     for col in candidateMoves:
         tempBoard = ApplyMove(board, col, agentSymbol)
         moveValue = MiniMax(tempBoard, 0, float("-inf"), float("inf"), False, agentSymbol, playerSymbol, maxDepth)
         moveValue += (cols // 2) - abs(col - (cols // 2))
-        # ^ maximising set to false because counter placement already counts as a maximising effort
+        # Small bonus for staying near the centre.
         if moveValue > bestValue:
             bestValue = moveValue
             bestCol = col
@@ -461,7 +464,7 @@ def Evaluation(firstAgentChoice, secondAgentChoice, numGames=500, outputFile="Ru
 
         for gameIndex in range(1, numGames + 1):
             global board, nodesExpanded, maxDepthReached, pruneCount
-            gameStart = time.perf_counter() # Timer starts for each game
+            gameStart = time.perf_counter() # Start the per-game timer.
             board = []
             CreateBoard()
 
@@ -478,9 +481,9 @@ def Evaluation(firstAgentChoice, secondAgentChoice, numGames=500, outputFile="Ru
             print("Game: ", gameIndex)
             while True:
                 # Agent 1
-                start = time.perf_counter() # Timer starts for each move
+                start = time.perf_counter() # Measure each move separately.
                 AgentTurn(firstAgentChoice, agentNumber=1)
-                duration = (time.perf_counter() - start) * 1000 # Time for move logged
+                duration = (time.perf_counter() - start) * 1000 # Store move time in ms.
                 totalMoveTime += duration
                 totalMoves += 1
                 if IsWinningBoard(symbol1, board):

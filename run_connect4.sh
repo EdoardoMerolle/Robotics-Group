@@ -5,12 +5,14 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_PATH="$SCRIPT_DIR/.venv"
 
+# The script expects a local virtual environment in the repo root.
 if [[ ! -d "$VENV_PATH" ]]; then
     echo "Virtual environment not found at $VENV_PATH"
     echo "Create it with: python3 -m venv .venv"
     return 1 2>/dev/null || exit 1
 fi
 
+# Warn if the script is executed instead of sourced.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo "Running in a subshell. Use 'source ./run_connect4.sh' if you want to stay inside the venv afterwards."
 fi
@@ -18,6 +20,7 @@ fi
 source "$VENV_PATH/bin/activate"
 cd "$SCRIPT_DIR"
 
+# Webcam is the default; terminal mode is for AI testing.
 MODE="${1:-webcam}"
 
 case "$MODE" in

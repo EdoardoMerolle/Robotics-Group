@@ -6,6 +6,7 @@ AI_DEPTH = 5
 
 
 def reset_board():
+    # Start from a clean board for each session.
     main.board = []
     main.CreateBoard()
 
@@ -16,6 +17,7 @@ def print_status():
 
 
 def get_human_move():
+    # Read a legal move from the terminal.
     while True:
         try:
             col = int(input("\nYour move (1-7, 0 to quit): "))
@@ -53,6 +55,7 @@ def apply_move(col, symbol):
 
 
 def choose_first_player():
+    # Let the user choose who moves first.
     while True:
         try:
             choice = input("Who goes first? [h]uman / [a]i: ").strip().lower()
@@ -84,6 +87,7 @@ def main_loop():
 
     try:
         while True:
+            # Alternate turns until someone wins or the board fills.
             print_status()
 
             if current == "human":

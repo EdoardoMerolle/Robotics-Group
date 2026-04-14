@@ -1,6 +1,7 @@
 import os
 from typing import Optional, Tuple
 
+# Keep serial optional so the game can still start without pyserial.
 try:
     import serial
     from serial import SerialException
@@ -47,6 +48,7 @@ class GantrySerialLink:
             return False, status
 
         one_based_column = zero_based_column + 1
+        # Send the column number as a newline-terminated text command.
         command = f"{one_based_column}\n".encode("ascii")
 
         try:
@@ -63,6 +65,7 @@ class GantrySerialLink:
 
 
 def build_gantry_link_from_env() -> Optional[GantrySerialLink]:
+    # Serial is only enabled when the launcher sets the environment flag.
     enabled = os.getenv("CONNECT4_ENABLE_SERIAL", "").strip().lower()
     if enabled not in {"1", "true", "yes", "on"}:
         return None
