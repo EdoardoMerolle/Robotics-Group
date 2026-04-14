@@ -1,6 +1,6 @@
 # Group 9: Edoardo Merolle & Jack Abson AITS
-Model Used: ChatGPT 5 Codex
-
+- Model Used: ChatGPT 5 Codex
+- AITS LEVEL: 5
 ## Connect 4 Logic
 
 The project builds on Edoardo’s previous Artificial Intelligence & Machine Learning Connect 4 work from Level 2, which was used as the foundation for the robot’s decision-making system. Codex extended this by improving the AI’s move selection and overall strategy.
