@@ -71,9 +71,7 @@ The batch file:
 - enables serial output through environment variables
 - starts `connect4_webcam.py`
 
-## Board Setup
-
-Use this section to document the physical setup of the board, webcam, and gantry before starting a game.
+## Setup
 
 ### Physical Setup
 
